@@ -1,5 +1,7 @@
 # Googletest Primer
 
+[TOC]
+
 ## Introduction: Why googletest?
 
 *googletest* helps you write better C++ tests.
@@ -178,9 +180,13 @@ by the Google
 you may need to use `ASSERT_TRUE()` or `EXPECT_TRUE()` to assert the equality of
 two objects of a user-defined type.
 
+><font color=red>zhou: 尽管上面两种方式都可以使用，但是`ASSERT_EQ(actual, expected)` 更被推荐使用，因为它会在失败的时候显示两者具体的值。</font>
+
 However, when possible, `ASSERT_EQ(actual, expected)` is preferred to
 `ASSERT_TRUE(actual == expected)`, since it tells you `actual` and `expected`'s
 values on failure.
+
+><font color=red>zhou: 断言的两个参数只会被evaluated一次，因此表达式执行时有副作用没问题。但是对参数的evaluation次序，不能有依赖。</font>
 
 Arguments are always evaluated exactly once. Therefore, it's OK for the
 arguments to have side effects. However, as with any ordinary C/C++ function,
@@ -214,6 +220,8 @@ as `ASSERT_EQ(expected, actual)`, so lots of existing code uses this order. Now
 `*_EQ` treats both parameters in the same way.
 
 ### String Comparison
+
+><font color=red>zhou: 这些断言都是用来比较C语言的字符串`char *`。</font>
 
 The assertions in this group compare two **C strings**. If you want to compare
 two `string` objects, use `EXPECT_EQ`, `EXPECT_NE`, and etc instead.
@@ -331,6 +339,9 @@ TEST_F(TestFixtureName, TestName) {
 }
 ```
 
+><font color=red>zhou: `TEST_F()`和`TEST()`的区别是，前者依赖于fixture，也就是预先定义的建立测试环境的class。对于`TEST_F`的第一个参数test suite，不再是能随意命名，而是必须是fixture class的名字。也就是`TEST_F()`执行的时候回去建立test suite指明的fixture，但是`TEST()`仅仅把test suite当作一个名字。
+还需要注意的是，对于同一个test suite中各个test，它们所使用的fixture的object是不同的。也就是在每一个test执行是会建立一个新的object。</font>
+
 Like `TEST()`, the first argument is the test suite name, but for `TEST_F()`
 this must be the name of the test fixture class. You've probably guessed: `_F`
 is for fixture.
@@ -404,6 +415,7 @@ TEST_F(QueueTest, DequeueWorks) {
   ASSERT_NE(n, nullptr);
   EXPECT_EQ(*n, 1);
   EXPECT_EQ(q1_.size(), 0);
+  // zhou: it depends on Queue<>'s implementation, whether need 'delete'.
   delete n;
 
   n = q2_.Dequeue();
@@ -413,6 +425,8 @@ TEST_F(QueueTest, DequeueWorks) {
   delete n;
 }
 ```
+
+><font color=red>zhou: `ASSERT_*` 和 `EXPECT_*` 这两种都是断言，优先使用后者。前者表示，我发现了一个错误，这个test我没法继续运行了，因为这个错误后面的所有执行都是无意义的。比如说，需要创建一个对象，然后在对象上作一些操作，对象都创建不出来，测试后面的操作有什么意义。后者表示，我发现了一个错误，但是没关系，我可以继续运行，希望在一个test里面能发现更多的错误。继续前面的例子就是，虽然对象的某个操作失败了，并不表示其它操作也会失败，我们就尽力在一个test里面暴露出更多的错误</font>
 
 The above uses both `ASSERT_*` and `EXPECT_*` assertions. The rule of thumb is
 to use `EXPECT_*` when you want the test to continue to reveal more errors after

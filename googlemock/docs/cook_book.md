@@ -1,5 +1,6 @@
 # gMock Cookbook
 
+[TOC]
 <!-- GOOGLETEST_CM0012 DO NOT DELETE -->
 
 You can find recipes for using gMock here. If you haven't yet, please read

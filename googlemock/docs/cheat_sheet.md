@@ -1,5 +1,6 @@
 ## gMock Cheat Sheet
 
+[TOC]
 <!-- GOOGLETEST_CM0019 DO NOT DELETE -->
 
 <!-- GOOGLETEST_CM0033 DO NOT DELETE -->
@@ -48,6 +49,7 @@ NiceMock<MockFoo> nice_foo;      // The type is a subclass of MockFoo.
 NaggyMock<MockFoo> naggy_foo;    // The type is a subclass of MockFoo.
 StrictMock<MockFoo> strict_foo;  // The type is a subclass of MockFoo.
 ```
+><font color=red>zhou: 通过模版实例化的方式，来进一步约束mock对未定义调用的处理，或忽略，或警告，或报错。</font>
 
 **Note:** A mock object is currently naggy by default. We may make it nice by
 default in the future.
