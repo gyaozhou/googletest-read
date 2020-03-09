@@ -111,6 +111,8 @@ assertion* to get the function arguments printed for free:
 | `ASSERT_PRED2(pred2, val1, val2)` | `EXPECT_PRED2(pred2, val1, val2)` | `pred2(val1, val2)` is true |
 | `...`                             | `...`                             | `...`                       |
 
+>zhou: 在使用EXPECT_TRUE或ASSERT_TRUE时，有时希望能够输出更加详细的信息，比如检查一个函数的返回值TRUE还是FALSE时，希望能够输出传入的参数是什么，以便失败后好跟踪。因此提供了如下的断言。
+
 <!-- mdformat on-->
 In the above, `predn` is an `n`-ary predicate function or functor, where `val1`,
 `val2`, ..., and `valn` are its arguments. The assertion succeeds if the
@@ -611,6 +613,8 @@ EXPECT_TRUE(IsCorrectBarIntVector(bar_ints))
 ```
 
 ## Death Tests
+
+>zhou: “死亡测试”名字比较恐怖，这里的“死亡”指的的是程序的崩溃。通常在测试过程中，我们需要考虑各种各样的输入，有的输入可能直接导致程序崩溃，这时我们就需要检查程序是否按照预期的方式挂掉，这也就是所谓的“死亡测试”。gtest的死亡测试能做到在一个安全的环境下执行崩溃的测试案例，同时又对崩溃结果进行验证。
 
 In many applications, there are assertions that can cause application failure if
 a condition is not met. These sanity checks, which ensure that the program is in
@@ -1148,6 +1152,19 @@ will output XML like this:
 
 ## Sharing Resources Between Tests in the Same Test Suite
 
+>zhou: gtest提供了多种事件机制，非常方便我们在案例之前或之后做一些操作。总结一下gtest的事件一共有3种：
+>
+>1. 全局的，所有案例执行前后。
+>2. TestSuite级别的，在某一批案例中第一个案例前，最后一个案例执行后。
+>3. TestCase级别的，每个TestCase前后。
+>        TestCase事件是挂在每个案例执行前后的，实现方式和上面的几乎一样，不过需要实现的是SetUp方法和TearDown方法：
+>        1. SetUp()方法在每个TestCase之前执行
+>        2. TearDown()方法在每个TestCase之后执行
+
+>zhou: 需要写一个类，继承testing::Test，然后实现两个静态方法:
+>1. SetUpTestCase() 方法在第一个TestCase之前执行
+>2. TearDownTestCase() 方法在最后一个TestCase之后执行
+
 googletest creates a new test fixture object for each test in order to make
 tests independent and easier to debug. However, sometimes tests use resources
 that are expensive to set up, making the one-copy-per-test model prohibitively
@@ -1224,6 +1241,9 @@ sometimes be necessary to declare it public, such as when using it with
 
 ## Global Set-Up and Tear-Down
 
+>zhou: 要实现全局事件，必须写一个类，继承testing::Environment类，实现里面的SetUp和TearDown方法。
+当然，这样还不够，我们还需要告诉gtest添加这个全局事件，我们需要在main函数中通过testing::AddGlobalTestEnvironment方法将事件挂进来，也就是说，我们可以写很多个这样的类，然后将他们的事件都挂上去。
+
 Just as you can do set-up and tear-down at the test level and the test suite
 level, you can also do it at the test program level. Here's how.
 
@@ -1282,6 +1302,16 @@ in which global variables from different translation units are initialized).
 
 ## Value-Parameterized Tests
 
+>zhou: 碰到下面这种测试多个参数的场景，重复粘贴有点显得啰嗦。参数化测试就是为了解z这个问题，写一个类描要进行什么样的测试，参数如何描述。
+>TEST(IsPrimeTest, HandleTrueReturn)
+>{
+>    EXPECT_TRUE(IsPrime(3));
+>    EXPECT_TRUE(IsPrime(5));
+>    EXPECT_TRUE(IsPrime(11));
+>    EXPECT_TRUE(IsPrime(23));
+>    EXPECT_TRUE(IsPrime(17));
+>}
+
 *Value-parameterized tests* allow you to test your code with different
 parameters without writing multiple copies of the same test. This is useful in a
 number of situations, for example:
@@ -1296,6 +1326,9 @@ number of situations, for example:
 
 ### How to Write Value-Parameterized Tests
 
+>zhou: 告诉gtest你的参数类型是什么。
+
+你必须添加一个类，继承testing::TestWithParam<T>，其中T就是你需要参数化的参数类型
 To write value-parameterized tests, first you should define a fixture class. It
 must be derived from both `testing::Test` and `testing::WithParamInterface<T>`
 (the latter is a pure interface), where `T` is the type of your parameter
@@ -1326,6 +1359,7 @@ class BarTest : public BaseTest,
   ...
 };
 ```
+><zhou: 告诉gtest你拿到参数的值后，具体做些什么样的测试。
 
 Then, use the `TEST_P` macro to define as many test patterns using this fixture
 as you want. The `_P` suffix is for "parameterized" or "pattern", whichever you
@@ -1343,6 +1377,10 @@ TEST_P(FooTest, HasBlahBlah) {
   ...
 }
 ```
+>zhou: 告诉gtest你想要测试的参数范围是什么。
+第一个参数是测试案例的前缀，可以任意取。
+第二个参数是测试案例的名称，需要和之前定义的参数化的类的名称相同。
+第三个参数是可以理解为参数生成器，上面的例子使用test::Values表示使用括号内的参数。Google提供了一系列的参数生成的函数：
 
 Finally, you can use `INSTANTIATE_TEST_SUITE_P` to instantiate the test suite
 with any set of parameters you want. googletest defines a number of functions
@@ -1509,6 +1547,8 @@ INSTANTIATE_TEST_SUITE_P(
 ```
 
 ## Typed Tests
+
+>zhou: gtest还提供了应付各种不同类型的数据时的方案，以及参数化类型的方案。
 
 Suppose you have multiple implementations of the same interface and want to make
 sure that all of them satisfy some common requirements. Or, you may have defined
@@ -2051,6 +2091,26 @@ See [sample10_unittest.cc] for an example of a failure-raising listener.
 [sample10_unittest.cc]: ../samples/sample10_unittest.cc "Failure-raising listener example"
 
 ## Running Test Programs: Advanced Options
+
+>zhou: 使用gtest编写的测试案例通常本身就是一个可执行文件，因此运行起来非常方便。同时，gtest也为我们提供了一系列的运行参数（环境变量、命令行参数或代码里指定），使得我们可以对案例的执行进行一些有效的控制。
+前面提到，对于运行参数，gtest提供了三种设置的途径:
+>1. 系统环境变量
+>2. 命令行参数
+>3. 代码中指定FLAG
+>
+>因为提供了三种途径，就会有优先级的问题， 有一个原则是，最后设置的那个会生效。不过总结一下，通常情况下，比较理想的优先级为：
+>
+>命令行参数 > 代码中指定FLAG > 系统环境变量
+
+>为什么我们编写的测试案例能够处理这些命令行参数呢？是因为我们在main函数中，将命令行参数交给了gtest，由gtest来搞定命令行参数的问题。
+
+>这样，我们就拥有了接收和响应gtest命令行参数的能力。如果需要在代码中指定FLAG，可以使用testing::GTEST_FLAG这个宏来设置。比如相对于命令行参数--gtest_output，可以使用testing::GTEST_FLAG(output) = "xml:";来设置。注意到了，不需要加--gtest前缀了。同时，推荐将这句放置InitGoogleTest之前，这样就可以使得对于同样的参数，命令行参数优先级高于代码中指定。
+最后再来说下第一种设置方式-系统环境变量。如果需要gtest的设置系统环境变量，必须注意的是：
+>
+>1. 系统环境变量全大写，比如对于--gtest_output，响应的系统环境变量为：GTEST_OUTPUT
+>2.  有一个命令行参数例外，那就是--gtest_list_tests，它是不接受系统环境变量的。（只是用来罗列测试案例名称）
+>
+>参考：https://www.cnblogs.com/coderzh/archive/2009/04/10/1432789.html
 
 googletest test programs are ordinary executables. Once built, you can run them
 directly and affect their behavior via the following environment variables

@@ -19,12 +19,12 @@ and mocks actually mean very different things in the Test-Driven Development
     not suitable for production. An in-memory file system would be an example of
     a fake.
 
-><font color=red>zhou: 就像一个in memory的硬盘一样，肯定没有真正的持久化存储的能力，但是可以方便的测试所有依赖于硬盘的代码测试。这个in memory的硬盘有着几乎所有对于处理I/O的逻辑。</font>
+>zhou: 就像一个in memory的硬盘一样，肯定没有真正的持久化存储的能力，但是可以方便的测试所有依赖于硬盘的代码测试。这个in memory的硬盘有着几乎所有对于处理I/O的逻辑。
 
 *   **Mocks** are objects pre-programmed with *expectations*, which form a
     specification of the calls they are expected to receive.
 
-><font color=red>zhou: Mocks是一个更简单的对象，完全就是一个应声虫，按照预定义应答。</font>
+>zhou: Mocks是一个更简单的对象，完全就是一个应声虫，按照预定义应答。
 
 If all this seems too abstract for you, don't worry - the most important thing
 to remember is that a mock allows you to check the *interaction* between itself
@@ -265,7 +265,7 @@ Stack trace:
 **Tip 1:** If you run the test from an Emacs buffer, you can hit <Enter> on the
 line number to jump right to the failed expectation.
 
-><font color=red>zhou: 什么意思？？？</font>
+>zhou: 什么意思？？？
 
 **Tip 2:** If your mock objects are never deleted, the final verification won't
 happen. Therefore it's a good idea to turn on the heap checker in your tests
@@ -276,7 +276,7 @@ when you allocate mocks on the heap. You get that automatically if you use the
 functions are called, otherwise the behavior is **undefined**. In particular,
 you mustn't interleave `EXPECT_CALL()s` and calls to the mock functions.
 
-><font color=red>zhou: 把对mock调用的期待写在前面，可以让测试框架在第一时间终止程序运行，这样有机会检查stack的调用情况。否则的话，测试框架只能记录下所有发生的事情，最后和期待进行比较，做出测试成功还是失败的决定。</font>
+>zhou: 把对mock调用的期待写在前面，可以让测试框架在第一时间终止程序运行，这样有机会检查stack的调用情况。否则的话，测试框架只能记录下所有发生的事情，最后和期待进行比较，做出测试成功还是失败的决定。
 
 This means `EXPECT_CALL()` should be read as expecting that a call will occur
 *in the future*, not that a call has occurred. Why does gMock work like that?
@@ -290,7 +290,7 @@ allows you to do *so much more* with the mocks.
 
 ### Setting Expectations
 
-><font color=red>zhou: mock使用的标准是，既不能太松，要能发现错误；也不能太严格，实现微小的无关改动都破坏了测试的正确性。</font>
+>zhou: mock使用的标准是，既不能太松，要能发现错误；也不能太严格，实现微小的无关改动都破坏了测试的正确性。
 
 The key to using a mock object successfully is to set the *right expectations*
 on it. If you set the expectations too strict, your test will fail as the result
@@ -539,7 +539,7 @@ So far we've only shown examples where you have a single expectation. More
 realistically, you'll specify expectations on multiple mock methods which may be
 from multiple mock objects.
 
-><font color=red>zhou: 这一点需要很小心，gMock默认情况下，是使用逆序匹配的方式来判断是否符合预期。这样设计的原因是，gMock希望test case和代码同步开发，那么代码逻辑是从最简单场景到复杂场景构建，那么mock的使用，也是先写那些简单场景中发生的调用，这些通常都是复杂场景中出现在最后的。那么随着代码丰富，mock的expect也顺序往后增加。</font>
+>zhou: 这一点需要很小心，gMock默认情况下，是使用逆序匹配的方式来判断是否符合预期。这样设计的原因是，gMock希望test case和代码同步开发，那么代码逻辑是从最简单场景到复杂场景构建，那么mock的使用，也是先写那些简单场景中发生的调用，这些通常都是复杂场景中出现在最后的。那么随着代码丰富，mock的expect也顺序往后增加。
 
 By default, when a mock method is invoked, gMock will search the expectations in
 the **reverse order** they are defined, and stop when an active expectation that
@@ -582,7 +582,7 @@ By default, an expectation can match a call even though an earlier expectation
 hasn't been satisfied. In other words, the calls don't have to occur in the
 order the expectations are specified.
 
-><font color=red>zhou: 如果不习惯的话，也是可以设置正序匹配的。</font>
+>zhou: 如果不习惯的话，也是可以设置正序匹配的。
 
 Sometimes, you may want all the expected calls to occur in a strict order. To
 say this in gMock is easy:
