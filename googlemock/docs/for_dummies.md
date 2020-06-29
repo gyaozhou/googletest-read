@@ -90,6 +90,15 @@ We encourage you to use gMock as
 *   a *testing* tool to cut your tests' outbound dependencies and probe the
     interaction between your module and its collaborators.
 
+>zhou: gMock不仅仅是一个测试工具，更是一个开发工具，能让你在开发的早期，其它周边模块还没有实现完成的时候，就依据接口进行测试工作。
+
+>zhou: 对于被测试代码，包含其它模块代码的```#include<>```怎么测试，如何避免编译错误，因为那些文件确实不会在编译中出现？看上去是不管，
+>      让原来的代码继续编译出object，额外在编译出来unittest mock和testcast相关的object。技巧在链接上面，原来产品代码的链接
+>      出来的exec文件不变。另外增加新的目标exec文件。
+>      这个时候，只链接被测试代码，mock，testcase以及mock framework。我们期望
+>      被测试文件的object，在link时，都能在unittest的mock中找到对应的符号，可以就能执行。
+>      这个方法的限制是，如果依赖外部的是inline函数，显然没办法做mock，因为已经```#include<>```到被测试代码里了。
+
 ### Getting Started
 
 gMock is bundled with googletest.
@@ -191,6 +200,9 @@ macro will generate the definitions for you. It's that simple!
 
 #### Where to Put It
 
+> zhou: mock在哪里维护？选项一，和被mock的对象放在一起，这样具体对象改变后，可以同时改变对应的mock。
+>       这样的好处是，所有用这个mock的人，可以共享。
+
 When you define a mock class, you need to decide where to put its definition.
 Some people put it in a `_test.cc`. This is fine when the interface being mocked
 (say, `Foo`) is owned by the same person or team. Otherwise, when the owner of
@@ -204,6 +216,7 @@ it in a `.h` and a `cc_library`. Then everyone can reference them from their
 tests. If `Foo` ever changes, there is only one copy of `MockFoo` to change, and
 only tests that depend on the changed methods need to be fixed.
 
+> zhou: 选项二，???
 Another way to do it: you can introduce a thin layer `FooAdaptor` on top of
 `Foo` and code to this new interface. Since you own `FooAdaptor`, you can absorb
 changes in `Foo` much more easily. While this is more work initially, carefully
@@ -276,7 +289,8 @@ when you allocate mocks on the heap. You get that automatically if you use the
 functions are called, otherwise the behavior is **undefined**. In particular,
 you mustn't interleave `EXPECT_CALL()s` and calls to the mock functions.
 
->zhou: 把对mock调用的期待写在前面，可以让测试框架在第一时间终止程序运行，这样有机会检查stack的调用情况。否则的话，测试框架只能记录下所有发生的事情，最后和期待进行比较，做出测试成功还是失败的决定。
+>zhou: 把对mock调用的期待写在前面，可以让测试框架在第一时间终止程序运行，这样有机会检查stack的调用情况。
+>      否则的话，测试框架只能记录下所有发生的事情，最后和期待进行比较，做出测试成功还是失败的决定。
 
 This means `EXPECT_CALL()` should be read as expecting that a call will occur
 *in the future*, not that a call has occurred. Why does gMock work like that?

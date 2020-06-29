@@ -30,6 +30,8 @@ SUCCEED();
 Generates a success. This does **NOT** make the overall test succeed. A test is
 considered successful only if none of its assertions fail during its execution.
 
+>zhou: 当一个test case不panic就是成功的时候，就需要用`SUCCEED()`来告诉gtest这样的结果。
+
 NOTE: `SUCCEED()` is purely documentary and currently doesn't generate any
 user-visible output. However, we may add `SUCCEED()` messages to googletest's
 output in the future.
@@ -44,6 +46,8 @@ ADD_FAILURE_AT("file_path", line_number);
 generate a nonfatal failure. These are useful when control flow, rather than a
 Boolean expression, determines the test's success or failure. For example, you
 might want to write something like:
+
+>zhou: 在switch/case情况下，`FAIL()` 能解决`EXPECT()`不能判断多个值的问题。
 
 ```c++
 switch(expression) {
@@ -70,6 +74,8 @@ Fatal assertion                            | Nonfatal assertion                 
 `ASSERT_ANY_THROW(statement);`             | `EXPECT_ANY_THROW(statement);`             | `statement` throws an exception of any type
 `ASSERT_NO_THROW(statement);`              | `EXPECT_NO_THROW(statement);`              | `statement` doesn't throw any exception
 
+>zhou: 判断exception对象，来检查test case运行结果。
+
 Examples:
 
 ```c++
@@ -95,6 +101,8 @@ failure message by themselves, streaming it into `EXPECT_TRUE()`. However, this
 is awkward especially when the expression has side-effects or is expensive to
 evaluate.
 
+>zhou: 在自定义类型的值判断过程中，由于无法直接判断，用户往往实现一个复杂的表达式，把true和false作为返回值使用`EXPECT_TRUE()`或`ASSERT_TRUE()`来判断。但是这样就没有办法在失败的情况下，给出具体错误的值是什么，下面的方法就是解决这个问题,能够输出传入的参数是什么，以便失败后好跟踪。
+
 googletest gives you three different options to solve this problem:
 
 #### Using an Existing Boolean Function
@@ -111,14 +119,14 @@ assertion* to get the function arguments printed for free:
 | `ASSERT_PRED2(pred2, val1, val2)` | `EXPECT_PRED2(pred2, val1, val2)` | `pred2(val1, val2)` is true |
 | `...`                             | `...`                             | `...`                       |
 
->zhou: 在使用EXPECT_TRUE或ASSERT_TRUE时，有时希望能够输出更加详细的信息，比如检查一个函数的返回值TRUE还是FALSE时，希望能够输出传入的参数是什么，以便失败后好跟踪。因此提供了如下的断言。
-
 <!-- mdformat on-->
 In the above, `predn` is an `n`-ary predicate function or functor, where `val1`,
 `val2`, ..., and `valn` are its arguments. The assertion succeeds if the
 predicate returns `true` when applied to the given arguments, and fails
 otherwise. When the assertion fails, it prints the value of each argument. In
 either case, the arguments are evaluated exactly once.
+
+>zhou: `ASSERT_PRED1(pred1, val1)`和`EXPECT_PRED1(pred1, val1)` ，是在`ASSERT()`和`EXPECT()`的基础上，增加了n个参数。这些参数的值只有在test failed的时候才会作为result输出。
 
 Here's an example. Given
 
@@ -168,6 +176,8 @@ this problem.
 An `AssertionResult` object represents the result of an assertion (whether it's
 a success or a failure, and an associated message). You can create an
 `AssertionResult` using one of these factory functions:
+
+>zhou: README,另外一种解决问题方法。
 
 ```c++
 namespace testing {
@@ -258,6 +268,8 @@ Fatal assertion                                  | Nonfatal assertion           
 `ASSERT_PRED_FORMAT1(pred_format1, val1);`       | `EXPECT_PRED_FORMAT1(pred_format1, val1);`       | `pred_format1(val1)` is successful
 `ASSERT_PRED_FORMAT2(pred_format2, val1, val2);` | `EXPECT_PRED_FORMAT2(pred_format2, val1, val2);` | `pred_format2(val1, val2)` is successful
 `...`                                            | `...`                                            | ...
+
+>zhou: README，更丰富的result输出格式控制。
 
 The difference between this and the previous group of macros is that instead of
 a predicate, `(ASSERT|EXPECT)_PRED_FORMAT*` take a *predicate-formatter*
@@ -404,6 +416,8 @@ alone with them. For a list of matchers gMock provides, read
 [this](../../googlemock/docs/cook_book.md##using-matchers). It's easy to write
 your [own matchers](../../googlemock/docs/cook_book.md#NewMatchers) too.
 
+>zhou: gMock可以做很多SUT与外部接口的交互判断，但是做不了SUT内部模块的匹配判断。
+
 gMock is bundled with googletest, so you don't need to add any build dependency
 in order to take advantage of this. Just include `"testing/base/public/gmock.h"`
 and you're ready to go.
@@ -547,6 +561,8 @@ As mentioned earlier, the printer is *extensible*. That means you can teach it
 to do a better job at printing your particular type than to dump the bytes. To
 do that, define `<<` for your type:
 
+>zhou: 对于值语义的自定义类型还是值得去实现。
+
 ```c++
 #include <ostream>
 
@@ -602,6 +618,8 @@ googletest is concerned. This allows you to customize how the value appears in
 googletest's output without affecting code that relies on the behavior of its
 `<<` operator.
 
+>zhou: 当自定义类型不适合实现`<<`的场景下，实现`PrintTo()`也行，这是gtest的一个实现选择。
+
 If you want to print a value `x` using googletest's value printer yourself, just
 call `::testing::PrintToString(x)`, which returns an `std::string`:
 
@@ -614,15 +632,15 @@ EXPECT_TRUE(IsCorrectBarIntVector(bar_ints))
 
 ## Death Tests
 
->zhou: “死亡测试”名字比较恐怖，这里的“死亡”指的的是程序的崩溃。通常在测试过程中，我们需要考虑各种各样的输入，有的输入可能直接导致程序崩溃，这时我们就需要检查程序是否按照预期的方式挂掉，这也就是所谓的“死亡测试”。gtest的死亡测试能做到在一个安全的环境下执行崩溃的测试案例，同时又对崩溃结果进行验证。
-
-In many applications, there are assertions that can cause application failure if
+>In many applications, there are assertions that can cause application failure if
 a condition is not met. These sanity checks, which ensure that the program is in
 a known good state, are there to fail at the earliest possible time after some
 program state is corrupted. If the assertion checks the wrong condition, then
 the program may proceed in an erroneous state, which could lead to memory
 corruption, security holes, or worse. Hence it is vitally important to test that
 such assertion statements work as expected.
+
+zhou: “死亡测试”名字中的“死亡”指的的是程序的崩溃。通常在测试过程中，我们需要考虑各种各样的输入，有的输入可能直接导致程序崩溃，这时我们就需要检查程序是否按照预期的方式挂掉，这也就是所谓的“死亡测试”。gtest的死亡测试能做到在一个安全的环境下执行崩溃的测试案例，同时又对崩溃结果进行验证。
 
 Since these precondition checks cause the processes to die, we call such tests
 _death tests_. More generally, any test that checks that a program terminates
@@ -1156,14 +1174,14 @@ will output XML like this:
 >
 >1. 全局的，所有案例执行前后。
 >2. TestSuite级别的，在某一批案例中第一个案例前，最后一个案例执行后。
->3. TestCase级别的，每个TestCase前后。
+>3. TestCase级别的，每个TestCase前后，也就是fixture。
 >        TestCase事件是挂在每个案例执行前后的，实现方式和上面的几乎一样，不过需要实现的是SetUp方法和TearDown方法：
 >        1. SetUp()方法在每个TestCase之前执行
 >        2. TearDown()方法在每个TestCase之后执行
 
->zhou: 需要写一个类，继承testing::Test，然后实现两个静态方法:
->1. SetUpTestCase() 方法在第一个TestCase之前执行
->2. TearDownTestCase() 方法在最后一个TestCase之后执行
+>zhou: fixture需要实现一个类，继承testing::Test，然后实现两个静态方法:
+>      1. SetUpTestCase() 方法在第一个TestCase之前执行
+>      2. TearDownTestCase() 方法在最后一个TestCase之后执行
 
 googletest creates a new test fixture object for each test in order to make
 tests independent and easier to debug. However, sometimes tests use resources
@@ -1182,6 +1200,8 @@ also supports per-test-suite set-up/tear-down. To use it:
     function (remember not to spell it as **`SetupTestSuite`** with a small
     `u`!) to set up the shared resources and a `static void TearDownTestSuite()`
     function to tear them down.
+
+>zhou: 建立一个test suit作用域object的方法。
 
 That's it! googletest automatically calls `SetUpTestSuite()` before running the
 *first test* in the `FooTest` test suite (i.e. before creating the first
@@ -1702,11 +1722,15 @@ break as long as the change is not observable by users. Therefore, **per the
 black-box testing principle, most of the time you should test your code through
 its public interfaces.**
 
+>zhou: 大部分场景下，test需要验证的是外部行为，并不需要去关心SUT内部的实现。这样的好处是，SUT内部实现的改进不会轻易破坏test break。但是另一方面是，少量错误很难通过外部接口行为表现出来，不过还是应该尽量从外部接口行为来探测错误。
+
 **If you still find yourself needing to test internal implementation code,
 consider if there's a better design.** The desire to test internal
 implementation is often a sign that the class is doing too much. Consider
 extracting an implementation class, and testing it. Then use that implementation
 class in the original class.
+
+>zhou: README，如果测试内部函数。
 
 If you absolutely have to test non-public interface code though, you can. There
 are two cases to consider:

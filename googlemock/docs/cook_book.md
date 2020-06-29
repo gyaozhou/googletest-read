@@ -77,12 +77,18 @@ class MockFoo {
 
 ### Mocking Private or Protected Methods
 
+> zhou：必须把mock method放到`public:`里面，无论被mock的method是哪一种访问属性，这是
+>       因为`ON_CALL`和`EXPECT_CALL`需要访问这些mock method。
+>       这里依赖C++的一个特性，就是允许派生类改变base class virtual function的访问属性。
+
 You must always put a mock method definition (`MOCK_METHOD`) in a `public:`
 section of the mock class, regardless of the method being mocked being `public`,
 `protected`, or `private` in the base class. This allows `ON_CALL` and
 `EXPECT_CALL` to reference the mock function from outside of the mock class.
 (Yes, C++ allows a subclass to change the access level of a virtual function in
 the base class.) Example:
+
+> zhou: 这个例子是最基础的，mock一个有纯虚函数的的基类。
 
 ```cpp
 class Foo {
@@ -111,6 +117,8 @@ class MockFoo : public Foo {
 
 ### Mocking Overloaded Methods
 
+> zhou: 这个例子是介绍，如何mock一个重载函数，没有什么特别的操作。
+
 You can mock overloaded functions as usual. No special attention is required:
 
 ```cpp
@@ -138,6 +146,7 @@ class MockFoo : public Foo {
   MOCK_METHOD(const Bar&, GetBar, (), (const, override));
 };
 ```
+> zhou：最好mock所有重载函数版本，否则会有warning。当然也可以使用using借用base class的实现。
 
 **Note:** if you don't mock all versions of the overloaded method, the compiler
 will give you a warning about some methods in the base class being hidden. To
@@ -154,6 +163,8 @@ class MockFoo : public Foo {
 ```
 
 ### Mocking Class Templates
+
+> zhou: 类模版也是可以继承的，因此也是一样的mock。
 
 You can mock class templates just like any class.
 
@@ -177,6 +188,9 @@ class MockStack : public StackInterface<Elem> {
 ```
 
 ### Mocking Non-virtual Methods {#MockingNonVirtualMethods}
+
+>zhou：如果被mock class并没有抽象base class，那么mock class就和被mock class没有
+       语法的关系，但是拥有同样的函数签名。MOCK_METHOD使用的语法与前无异。
 
 gMock can mock non-virtual functions to be used in Hi-perf dependency
 injection.<!-- GOOGLETEST_CM0017 DO NOT DELETE -->
@@ -206,8 +220,14 @@ class MockPacketStream {
 };
 ```
 
+> zhou：注意，与mock抽象base class不同的是，上面需要mock所有的函数，否则会有warning，
+        但是这里只需要mock测试中涉及的函数，因为两个class是没有语法关系的。
+
 Note that the mock class doesn't define `AppendPacket()`, unlike the real class.
 That's fine as long as the test doesn't need to call it.
+
+> zhou: 如何才能让两个无语法关系的类，能够在产品代码中和测试代码中分别被调用呢？一个方法是使用
+        模版，这样在编译时候指定使用哪一个class。这样的坏处是，需要改动产品代码。
 
 Next, you need a way to say that you want to use `ConcretePacketStream` in
 production code, and use `MockPacketStream` in tests. Since the functions are
@@ -236,6 +256,8 @@ Then you can use `CreateConnection<ConcretePacketStream>()` and
 `CreateConnection<MockPacketStream>()` and `PacketReader<MockPacketStream>` in
 tests.
 
+> zhou: 测试代码中这么写。
+
 ```cpp
   MockPacketStream mock_stream;
   EXPECT_CALL(mock_stream, ...)...;
@@ -245,6 +267,8 @@ tests.
 ```
 
 ### Mocking Free Functions
+
+> zhou：对于C函数，需要把他们变成抽象类的派生类实现。
 
 It's possible to use gMock to mock a free function (i.e. a C-style function or a
 static method). You just need to rewrite your code to use an interface (abstract
@@ -275,6 +299,8 @@ out the function.
 This may seem like a lot of hassle, but in practice you often have multiple
 related functions that you can put in the same interface, so the per-function
 syntactic overhead will be much lower.
+
+>zhou: 如果使用虚函数影响性能，那么就用模版。
 
 If you are concerned about the performance overhead incurred by virtual
 functions, and profiling confirms your concern, you can combine this with the
@@ -531,10 +557,13 @@ on the class because now it's harder to maintain the class invariants. You
 should make a function virtual only when there is a valid reason for a subclass
 to override it.
 
+> zhou: 使用模版来mocking具体类的坏处是，mock class和被mock的具体类有了很紧密的耦合，具体类
+        实现的任何改动都会破坏测试。
 Mocking concrete classes directly is problematic as it creates a tight coupling
 between the class and the tests - any small change in the class may invalidate
 your tests and make test maintenance a pain.
 
+> zhou:
 To avoid such problems, many programmers have been practicing "coding to
 interfaces": instead of talking to the `Concrete` class, your code would define
 an interface and talk to it. Then you implement that interface as an adaptor on

@@ -82,8 +82,8 @@ Exercise a particular program path with specific input values and verify the res
 ## Basic Concepts
 
 When using googletest, you start by writing *assertions*, which are statements
-that check whether a condition is true. An assertion's result can be *success*,
-*nonfatal failure*, or *fatal failure*. If a fatal failure occurs, it aborts the
+that check whether a condition is true. An assertion's result can be ***success***,
+***nonfatal failure***, or ***fatal failure***. If a fatal failure occurs, it aborts the
 current function; otherwise the program continues normally.
 
 *Tests* use assertions to verify the tested code's behavior. If a test crashes
@@ -115,12 +115,14 @@ preferred, as they allow more than one failure to be reported in a test.
 However, you should use `ASSERT_*` if it doesn't make sense to continue when the
 assertion in question fails.
 
+>zhou: 什么时候用`ASSERT_*`还是`EXPECT_*`，判断依据上，这个test binary还能不能执行下去。如果可以，也就是前面的错误不会对后面的test case的执行带来影响，那么还是尽力使用`EXPECT_*`，因为这样可以在一次test执行中发现尽可能多的failed cases。
+
 Since a failed `ASSERT_*` returns from the current function immediately,
 possibly skipping clean-up code that comes after it, it may cause a space leak.
 Depending on the nature of the leak, it may or may not be worth fixing - so keep
 this in mind if you get a heap checker error in addition to assertion errors.
 
->zhou: `ASSERT_*`和`EXPECT_*`，本身还是一个流，可以输出用户自己定义的信息。
+>zhou: 还要注意的是，`ASSERT_*`不会去清理资源，这个需要开发者自己关注。
 
 To provide a custom failure message, simply stream it into the macro using the
 `<<` operator or a sequence of such operators. An example:
@@ -132,6 +134,8 @@ for (int i = 0; i < x.size(); ++i) {
   EXPECT_EQ(x[i], y[i]) << "Vectors x and y differ at index " << i;
 }
 ```
+
+>zhou: `ASSERT_*`和`EXPECT_*`，本身还是一个流，可以输出用户自己定义的信息。
 
 Anything that can be streamed to an `ostream` can be streamed to an assertion
 macro--in particular, C strings and `string` objects. If a wide string
@@ -175,6 +179,8 @@ fails; otherwise googletest will attempt to print them in the best way it can.
 For more details and how to customize the printing of the arguments, see the
 [documentation](../../googlemock/docs/cook_book.md#teaching-gmock-how-to-print-your-values).
 
+>zhou: 过去，对于自定义类型，gtest需要用户实现`<<`，这样才能在发生错误的时候，打印出对象的信息。这在新的gtest实现中不再需要了，不会因此造成编译错误。但此时，仅仅打印出raw bytes。因此，对于用户自定义类型，或者说数值类型来说，支持`<<`是一个好的实践。
+
 These assertions can work with a user-defined type, but only if you define the
 corresponding comparison operator (e.g., `==` or `<`). Since this is discouraged
 by the Google
@@ -182,19 +188,19 @@ by the Google
 you may need to use `ASSERT_TRUE()` or `EXPECT_TRUE()` to assert the equality of
 two objects of a user-defined type.
 
->zhou: 尽管上面两种方式都可以使用，但是`ASSERT_EQ(actual, expected)` 更被推荐使用，因为它会在失败的时候显示两者具体的值。
+>zhou: 尽管`ASSERT_EQ()`和`ASSERT_TRUE()`都可以使用，但是`ASSERT_EQ(actual, expected)` 更被推荐使用，因为它会在失败的时候显示两者具体的值。
 
 However, when possible, `ASSERT_EQ(actual, expected)` is preferred to
 `ASSERT_TRUE(actual == expected)`, since it tells you `actual` and `expected`'s
 values on failure.
-
->zhou: 断言的两个参数只会被evaluated一次，因此表达式执行时有副作用没问题。但是对参数的evaluation次序，不能有依赖。
 
 Arguments are always evaluated exactly once. Therefore, it's OK for the
 arguments to have side effects. However, as with any ordinary C/C++ function,
 the arguments' evaluation order is undefined (i.e., the compiler is free to
 choose any order), and your code should not depend on any particular argument
 evaluation order.
+
+>zhou: *ASSERT*的两个参数只会被evaluated一次，因此表达式执行时有副作用没问题。但是对参数的evaluation次序，不能有依赖。
 
 `ASSERT_EQ()` does pointer equality on pointers. If used on two C strings, it
 tests if they are in the same memory location, not if they have the same value.
@@ -204,13 +210,19 @@ that a C string is `NULL`, use `ASSERT_STREQ(c_string, NULL)`. Consider using
 `ASSERT_EQ(c_string, nullptr)` if c++11 is supported. To compare two `string`
 objects, you should use `ASSERT_EQ`.
 
+>zhou: 对于字符串指针char*来说，要格外小心，因为`ASSERT_EQ()` 比较的是指针的值，而不是期望的字符串的值。如果需要比较字符串，需要用`ASSERT_STREQ()`。对于std::string来说没有这个问题，直接用前者就能比较。
+
 When doing pointer comparisons use `*_EQ(ptr, nullptr)` and `*_NE(ptr, nullptr)`
 instead of `*_EQ(ptr, NULL)` and `*_NE(ptr, NULL)`. This is because `nullptr` is
 typed, while `NULL` is not. See the [FAQ](faq.md) for more details.
 
+>zhou: 这是c++11的特性。
+
 If you're working with floating point numbers, you may want to use the floating
 point variations of some of these macros in order to avoid problems caused by
 rounding. See [Advanced googletest Topics](advanced.md) for details.
+
+>zhou: 对于浮点数的相等比较，依然要注意精度问题，最好给一个范围。
 
 Macros in this section work with both narrow and wide string objects (`string`
 and `wstring`).
@@ -223,8 +235,6 @@ as `ASSERT_EQ(expected, actual)`, so lots of existing code uses this order. Now
 
 ### String Comparison
 
->zhou: 这些断言都是用来比较C语言的字符串`char *`。
-
 The assertions in this group compare two **C strings**. If you want to compare
 two `string` objects, use `EXPECT_EQ`, `EXPECT_NE`, and etc instead.
 
@@ -236,6 +246,8 @@ two `string` objects, use `EXPECT_EQ`, `EXPECT_NE`, and etc instead.
 | `ASSERT_STRNE(str1,str2);`     | `EXPECT_STRNE(str1,str2);`     | the two C strings have different contents 		     |
 | `ASSERT_STRCASEEQ(str1,str2);` | `EXPECT_STRCASEEQ(str1,str2);` | the two C strings have the same content, ignoring case   |
 | `ASSERT_STRCASENE(str1,str2);` | `EXPECT_STRCASENE(str1,str2);` | the two C strings have different contents, ignoring case |
+
+>zhou: 这些断言都是用来比较字符串指针`char *`，上述ASSERT名字中包含**CASE**就意味着，比较是忽略大小写的。还有指向空字符串的指针和空指针也显然是不同的。
 
 <!-- mdformat on-->
 
@@ -250,6 +262,8 @@ of two wide strings fails, their values will be printed as UTF-8 narrow strings.
 **See also**: For more string comparison tricks (substring, prefix, suffix, and
 regular expression matching, for example), see [this](advanced.md) in the
 Advanced googletest Guide.
+
+>zhou: 更多的字符串部分匹配的比较，参看这里。
 
 ## Simple Tests
 
@@ -275,6 +289,8 @@ suite. Both names must be valid C++ identifiers, and they should not contain
 any underscores (`_`). A test's *full name* consists of its containing test suite and
 its individual name. Tests from different test suites can have the same
 individual name.
+
+>zhou: `TEST()`是最简单的一种方法，其第一个参数是test suite的名字，第二个参数是test case的名字（test suite内唯一）。不能使用下划线。
 
 For example, let's take a simple integer function:
 
@@ -317,6 +333,8 @@ If you find yourself writing two or more tests that operate on similar data, you
 can use a *test fixture*. This allows you to reuse the same configuration of
 objects for several different tests.
 
+>zhou: `TEST_F()`是更符合实践的一种使用方式，可以做一些test suite共用的环境的准备工作。
+
 To create a fixture:
 
 1.  Derive a class from `::testing::Test` . Start its body with `protected:`, as
@@ -341,20 +359,23 @@ TEST_F(TestFixtureName, TestName) {
 }
 ```
 
->zhou: `TEST_F()`和`TEST()`的区别是，前者依赖于fixture，也就是预先定义的建立测试环境的class。对于`TEST_F`的第一个参数test suite，不再是能随意命名，而是必须是fixture class的名字。也就是`TEST_F()`执行的时候回去建立test suite指明的fixture，但是`TEST()`仅仅把test suite当作一个名字。
-还需要注意的是，对于同一个test suite中各个test，它们所使用的fixture的object是不同的。也就是在每一个test执行是会建立一个新的object。
-
 Like `TEST()`, the first argument is the test suite name, but for `TEST_F()`
 this must be the name of the test fixture class. You've probably guessed: `_F`
 is for fixture.
+
+>zhou: `TEST_F()`和`TEST()`的区别是，前者依赖于fixture，也就是预先定义的建立测试环境的class。对于`TEST_F`的第一个参数test suite，必须是fixture class的名字。也就是`TEST_F()`执行的时候回去建立test suite指明的fixture。在`TEST()`中，仅仅把test suite当作一个名字。还需要注意的是，对于同一个test suite中各个test，它们所使用的fixture的object是不同的。也就是在每一个test执行是会建立一个新的object。也就是fixture的建立，是针对每一个test case的，这样就能是每一个test case独立于其它test case的执行。
 
 Unfortunately, the C++ macro system does not allow us to create a single macro
 that can handle both types of tests. Using the wrong macro causes a compiler
 error.
 
+>zhou: 由于C++宏的限制，gtest并不能合并`TEST()`和`TEST_F()`为一个宏。
+
 Also, you must first define a test fixture class before using it in a
 `TEST_F()`, or you'll get the compiler error "`virtual outside class
 declaration`".
+
+>zhou：别忘记在定义`TEST_F()`之前定fixture，否则会出现编译错误。
 
 For each test defined with `TEST_F()`, googletest will create a *fresh* test
 fixture at runtime, immediately initialize it via `SetUp()`, run the test,
@@ -428,14 +449,14 @@ TEST_F(QueueTest, DequeueWorks) {
 }
 ```
 
->zhou: `ASSERT_*` 和 `EXPECT_*` 这两种都是断言，优先使用后者。前者表示，我发现了一个错误，这个test我没法继续运行了，因为这个错误后面的所有执行都是无意义的。比如说，需要创建一个对象，然后在对象上作一些操作，对象都创建不出来，测试后面的操作有什么意义。后者表示，我发现了一个错误，但是没关系，我可以继续运行，希望在一个test里面能发现更多的错误。继续前面的例子就是，虽然对象的某个操作失败了，并不表示其它操作也会失败，我们就尽力在一个test里面暴露出更多的错误
-
 The above uses both `ASSERT_*` and `EXPECT_*` assertions. The rule of thumb is
 to use `EXPECT_*` when you want the test to continue to reveal more errors after
 the assertion failure, and use `ASSERT_*` when continuing after failure doesn't
 make sense. For example, the second assertion in the `Dequeue` test is
 `ASSERT_NE(nullptr, n)`, as we need to dereference the pointer `n` later, which
 would lead to a segfault when `n` is `NULL`.
+
+>zhou: `ASSERT_*` 和 `EXPECT_*` 这两种都是断言，优先使用`EXPECT_*`。`ASSERT_*`表示，我发现了一个错误，这个test我没法继续运行了，因为这个错误后面的所有执行都是无意义的。比如说，需要创建一个对象，然后在对象上作一些操作，对象都创建不出来，测试后面的操作有什么意义。`EXPECT_*`表示，我发现了一个错误，但是没关系，我可以继续运行，希望在一个test里面能发现更多的错误。继续前面的例子就是，虽然对象的某个操作失败了，并不表示其它操作也会失败，我们就尽力在一个test里面暴露出更多的错误。
 
 When these tests run, the following happens:
 
@@ -454,6 +475,8 @@ When these tests run, the following happens:
 `TEST()` and `TEST_F()` implicitly register their tests with googletest. So,
 unlike with many other C++ testing frameworks, you don't have to re-list all
 your defined tests in order to run them.
+
+>zhou: 用`TEST()` 或 `TEST_F()` 定义好test suite/test case后，并不需要再到别处指定运行这些case，这都是由gtest自动完成的。
 
 After defining your tests, you can run them with `RUN_ALL_TESTS()`, which
 returns `0` if all the tests are successful, or `1` otherwise. Note that
